@@ -1,0 +1,48 @@
+version: "3.8"
+services:
+  nextcloud:
+    image: nextcloud:latest
+    ports:
+      - "8080:80"
+    environment:
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - nextcloud_data:/var/www/html
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
+      interval: 30s
+      retries: 3
+
+  postgres:
+    image: postgres:13
+    environment:
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nextcloud"]
+      interval: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 5
+
+volumes:
+  nextcloud_data:
+  postgres_data:
